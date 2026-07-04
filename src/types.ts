@@ -115,6 +115,10 @@ export interface AppSettings {
   agentImageProfileId?: string | null
   profiles: ApiProfile[]
   activeProfileId: string
+  // 在 profiles 数组字段后追加:
+  generalApiProfiles: GeneralApiProfile[]
+  generalActiveProfileId: string
+  modelGroups: ModelGroup[]
 }
 
 // ===== 任务参数 =====
@@ -441,3 +445,56 @@ export interface ExportData {
     thumbnailVersion?: number
   }>
 }
+
+// ===== 通用 API 模型管理 =====
+
+export type GeneralApiMode = 'chat' | 'responses'
+
+/** 通用 API 配置(独立于图片的 ApiProfile) */
+export interface GeneralApiProfile {
+  id: string
+  name: string
+  baseUrl: string
+  apiKey: string
+  apiMode: GeneralApiMode
+  apiProxy: boolean
+}
+
+/** 已保存的模型分组(用户从弹窗里 ➕ 进来的) */
+export interface ModelGroup {
+  id: string
+  /** 分组名 = 最长公有前缀,如 "gpt"、"claude-3" */
+  name: string
+  /** 来源 profile,决定测活和调用时用哪套配置 */
+  profileId: string
+  /** 分组内模型 ID 列表(真删除:移除就是 splice) */
+  modelIds: string[]
+  createdAt: number
+  updatedAt: number
+}
+
+/** 弹窗临时态:候选模型 */
+export interface CandidateModel {
+  id: string
+}
+
+/** 弹窗临时态:候选分组(LCP 切分结果) */
+export interface CandidateGroup {
+  /** LCP 前缀作为分组名 */
+  name: string
+  models: CandidateModel[]
+}
+
+// ===== 模型测活 =====
+
+export type ModelHealthStatus = 'idle' | 'checking' | 'ok' | 'fail'
+
+export interface ModelHealthEntry {
+  status: ModelHealthStatus
+  lastCheckedAt: number | null
+  latencyMs: number | null
+  error: string | null
+}
+
+/** key: `${profileId}:${modelId}` */
+export type ModelHealthMap = Record<string, ModelHealthEntry>
