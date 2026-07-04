@@ -325,6 +325,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
         <ModelPickerModal
           profile={activeProfile}
           candidateGroups={candidateGroups}
+          onCommit={onCommit}
           onClose={() => {
             setShowPicker(false)
             setCandidateGroups([])

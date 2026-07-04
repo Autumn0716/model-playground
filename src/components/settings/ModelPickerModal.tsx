@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import type { CandidateGroup, GeneralApiProfile, ModelGroup } from '../../types'
+import type { AppSettings, CandidateGroup, GeneralApiProfile, ModelGroup } from '../../types'
 import { useStore } from '../../store'
 import { useCloseOnEscape } from '../../hooks/useCloseOnEscape'
 import { usePreventBackgroundScroll } from '../../hooks/usePreventBackgroundScroll'
@@ -10,6 +10,8 @@ interface ModelPickerModalProps {
   profile: GeneralApiProfile
   candidateGroups: CandidateGroup[]
   onClose: () => void
+  /** 提交设置变更(走 SettingsModal.commitSettings,保持 draft 同步) */
+  onCommit: (next: AppSettings) => void
 }
 
 // 把 query 命中的片段用【】包裹,方便肉眼定位
@@ -25,10 +27,9 @@ function createModelGroupId() {
   return `group-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-export default function ModelPickerModal({ profile, candidateGroups, onClose }: ModelPickerModalProps) {
+export default function ModelPickerModal({ profile, candidateGroups, onClose, onCommit }: ModelPickerModalProps) {
   const [query, setQuery] = useState('')
   const settings = useStore((s) => s.settings)
-  const setSettings = useStore((s) => s.setSettings)
   const showToast = useStore((s) => s.showToast)
   const scrollBoundaryRef = useRef<HTMLDivElement>(null)
   usePreventBackgroundScroll(true, scrollBoundaryRef)
@@ -73,7 +74,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose }: 
       createdAt: now,
       updatedAt: now,
     }
-    setSettings({ ...settings, modelGroups: [...savedGroups, newModelGroup] })
+    onCommit({ ...settings, modelGroups: [...savedGroups, newModelGroup] })
     showToast(`已添加分组「${group.name}」`, 'success')
   }
 
@@ -94,7 +95,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose }: 
       showToast('当前搜索结果已全部选中', 'info')
       return
     }
-    setSettings({ ...settings, modelGroups: [...savedGroups, ...toAdd] })
+    onCommit({ ...settings, modelGroups: [...savedGroups, ...toAdd] })
     showToast(`已添加 ${toAdd.length} 个分组`, 'success')
   }
 
