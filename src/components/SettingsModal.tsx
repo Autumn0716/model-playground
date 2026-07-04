@@ -37,6 +37,7 @@ import ViewportTooltip from './ViewportTooltip'
 import { ChevronDownIcon, CloseIcon, CopyIcon, PlusIcon, TrashIcon, GithubIcon, ExportIcon, ImportIcon, DragHandleIcon, LinkIcon } from './icons'
 import GeneralSettingsTab from './settings/GeneralSettingsTab'
 import AgentSettingsTab from './settings/AgentSettingsTab'
+import GeneralApiSettingsTab from './settings/GeneralApiSettingsTab'
 
 function newId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -1260,9 +1261,7 @@ export default function SettingsModal() {
           <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-transparent relative overflow-hidden">
             <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar p-5 sm:p-6">
             {activeTab === 'general-api' && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">通用 API 配置(开发中)</p>
-              </div>
+              <GeneralApiSettingsTab draft={draft} commitSettings={commitSettings} />
             )}
             {activeTab === 'general' && (
               <GeneralSettingsTab
