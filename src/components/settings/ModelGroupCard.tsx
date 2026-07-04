@@ -36,6 +36,8 @@ export default function ModelGroupCard({ group, profile }: ModelGroupCardProps) 
           ...settings,
           modelGroups: settings.modelGroups.filter((g) => g.id !== group.id),
         })
+        // 清理该分组下所有模型的测活缓存,避免内存中残留孤儿条目
+        group.modelIds.forEach((modelId) => clearModelHealthForModel(`${profile.id}:${modelId}`))
       },
     })
   }
