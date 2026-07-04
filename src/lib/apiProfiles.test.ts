@@ -419,6 +419,107 @@ describe('mergeImportedSettings', () => {
       model: 'custom-model',
     })
   })
+
+  it('preserves imported generalApiProfiles when current image profiles are customized', () => {
+    // current 有自定义图片 profile(非默认),走 current-wins 分支
+    const current = mergeImportedSettings(DEFAULT_SETTINGS, {
+      baseUrl: 'https://current.example.com/v1',
+      apiKey: 'current-key',
+      model: 'current-model',
+    })
+    const imported = normalizeSettings({
+      ...current,
+      generalApiProfiles: [
+        { id: 'gp-imported', name: '导入的中转', baseUrl: 'https://relay.example.com/v1', apiKey: 'sk-relay', apiMode: 'chat', apiProxy: false },
+      ],
+      generalActiveProfileId: 'gp-imported',
+      modelGroups: [
+        { id: 'mg-1', name: 'gpt', profileId: 'gp-imported', modelIds: ['gpt-4o'], createdAt: 1, updatedAt: 1 },
+      ],
+    })
+
+    const merged = mergeImportedSettings(current, imported)
+
+    // 通用 API 配置应保留导入的 profile
+    expect(merged.generalApiProfiles).toHaveLength(2)
+    expect(merged.generalApiProfiles.some((p) => p.id === 'gp-imported' && p.baseUrl === 'https://relay.example.com/v1')).toBe(true)
+    // 模型分组应保留
+    expect(merged.modelGroups).toHaveLength(1)
+    expect(merged.modelGroups[0]).toMatchObject({ name: 'gpt', profileId: 'gp-imported', modelIds: ['gpt-4o'] })
+  })
+
+  it('dedupes generalApiProfiles on import by connection key', () => {
+    const current = mergeImportedSettings(DEFAULT_SETTINGS, {
+      baseUrl: 'https://current.example.com/v1',
+      apiKey: 'current-key',
+      model: 'current-model',
+    })
+    // 已存在一个相同连接(base_url + api_key + api_mode)的 generalApiProfile
+    const currentWithGeneral = normalizeSettings({
+      ...current,
+      generalApiProfiles: [
+        { id: 'gp-existing', name: '已有中转', baseUrl: 'https://relay.example.com/v1', apiKey: 'sk-relay', apiMode: 'chat', apiProxy: false },
+      ],
+    })
+    const imported = normalizeSettings({
+      ...current,
+      generalApiProfiles: [
+        // 同一连接,不同 id/name,应去重
+        { id: 'gp-imported', name: '导入的中转', baseUrl: 'https://relay.example.com/v1', apiKey: 'sk-relay', apiMode: 'chat', apiProxy: false },
+        // 新连接,应保留
+        { id: 'gp-new', name: '新中转', baseUrl: 'https://other.example.com/v1', apiKey: 'sk-other', apiMode: 'responses', apiProxy: false },
+      ],
+    })
+
+    const merged = mergeImportedSettings(currentWithGeneral, imported)
+
+    // 1 个已有 + 1 个新 = 2 个(默认 generalApiProfile[0] 是 default-general)
+    // currentWithGeneral 已有 default-general + gp-existing = 2
+    // 合并后应保留 gp-existing,新增 gp-new,丢弃 gp-imported(去重)
+    const ids = merged.generalApiProfiles.map((p) => p.id)
+    expect(ids).toContain('gp-existing')
+    expect(ids).toContain('gp-new')
+    expect(ids).not.toContain('gp-imported')
+  })
+
+  it('dedupes modelGroups on import by id and by name+profileId', () => {
+    const current = mergeImportedSettings(DEFAULT_SETTINGS, {
+      baseUrl: 'https://current.example.com/v1',
+      apiKey: 'current-key',
+      model: 'current-model',
+    })
+    const currentWithGroups = normalizeSettings({
+      ...current,
+      generalApiProfiles: [
+        { id: 'gp-1', name: '中转', baseUrl: 'https://a/v1', apiKey: 'sk-a', apiMode: 'chat', apiProxy: false },
+      ],
+      modelGroups: [
+        { id: 'mg-existing', name: 'gpt', profileId: 'gp-1', modelIds: ['gpt-4o'], createdAt: 1, updatedAt: 1 },
+      ],
+    })
+    const imported = normalizeSettings({
+      ...current,
+      generalApiProfiles: [
+        { id: 'gp-1', name: '中转', baseUrl: 'https://a/v1', apiKey: 'sk-a', apiMode: 'chat', apiProxy: false },
+      ],
+      modelGroups: [
+        // 相同 id → 去重
+        { id: 'mg-existing', name: 'gpt', profileId: 'gp-1', modelIds: ['gpt-4o-mini'], createdAt: 2, updatedAt: 2 },
+        // 相同 name+profileId 但不同 id → 去重
+        { id: 'mg-dup-name', name: 'gpt', profileId: 'gp-1', modelIds: ['gpt-3.5'], createdAt: 3, updatedAt: 3 },
+        // 全新分组 → 保留
+        { id: 'mg-new', name: 'claude', profileId: 'gp-1', modelIds: ['claude-3-opus'], createdAt: 4, updatedAt: 4 },
+      ],
+    })
+
+    const merged = mergeImportedSettings(currentWithGroups, imported)
+
+    const ids = merged.modelGroups.map((g) => g.id)
+    expect(ids).toContain('mg-existing')
+    expect(ids).toContain('mg-new')
+    expect(ids).not.toContain('mg-dup-name')
+    expect(merged.modelGroups).toHaveLength(2)
+  })
 })
 
 describe('custom providers', () => {

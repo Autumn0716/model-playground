@@ -12,6 +12,8 @@ import type {
   CustomProviderResultMapping,
   CustomProviderSubmitMapping,
   CustomProviderTemplate,
+  GeneralApiProfile,
+  ModelGroup,
   ReferenceImageEditAction,
 } from '../types'
 import { DEFAULT_AGENT_MAX_TOOL_ROUNDS, DEFAULT_STREAM_PARTIAL_IMAGES, DEFAULT_ZIP_DOWNLOAD_ROUTES, ZIP_DOWNLOAD_ROUTE_VALUES } from '../types'
@@ -852,12 +854,61 @@ export function mergeImportedSettings(currentSettings: Partial<AppSettings> | un
     }))
   const profiles = [...current.profiles, ...importedProfiles]
 
+  // 合并通用 API 配置:按连接键(baseUrl + apiKey + apiMode)去重,保留 current 已有的
+  const generalApiProfiles = mergeGeneralApiProfiles(current.generalApiProfiles, imported.generalApiProfiles)
+  // generalActiveProfileId 优先 current,若 current 的失效则回退到合并后第一个
+  const generalActiveProfileId = generalApiProfiles.some((p) => p.id === current.generalActiveProfileId)
+    ? current.generalActiveProfileId
+    : generalApiProfiles[0].id
+  // 模型分组:按 id 去重,再按 name+profileId 去重(current 优先)
+  const modelGroups = mergeModelGroups(current.modelGroups, imported.modelGroups)
+
   return normalizeSettings({
     ...current,
     customProviders,
     profiles,
     activeProfileId: current.activeProfileId,
+    generalApiProfiles,
+    generalActiveProfileId,
+    modelGroups,
   })
+}
+
+function generalApiProfileConnectionKey(profile: GeneralApiProfile): string {
+  return JSON.stringify([
+    profile.baseUrl.trim().replace(/\/+$/, '').toLowerCase(),
+    profile.apiKey.trim(),
+    profile.apiMode,
+  ])
+}
+
+function mergeGeneralApiProfiles(currentProfiles: GeneralApiProfile[], importedProfiles: GeneralApiProfile[]): GeneralApiProfile[] {
+  const seen = new Set(currentProfiles.map(generalApiProfileConnectionKey))
+  const merged = [...currentProfiles]
+  for (const profile of importedProfiles) {
+    const key = generalApiProfileConnectionKey(profile)
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(profile)
+  }
+  return merged
+}
+
+function modelGroupDedupKey(group: ModelGroup): string {
+  return `${group.name}@${group.profileId}`
+}
+
+function mergeModelGroups(currentGroups: ModelGroup[], importedGroups: ModelGroup[]): ModelGroup[] {
+  const seenIds = new Set(currentGroups.map((g) => g.id))
+  const seenKeys = new Set(currentGroups.map(modelGroupDedupKey))
+  const merged = [...currentGroups]
+  for (const group of importedGroups) {
+    if (seenIds.has(group.id) || seenKeys.has(modelGroupDedupKey(group))) continue
+    seenIds.add(group.id)
+    seenKeys.add(modelGroupDedupKey(group))
+    merged.push(group)
+  }
+  return merged
 }
 
 export const DEFAULT_SETTINGS: AppSettings = normalizeSettings({
