@@ -19,6 +19,12 @@ import { shouldUseApiProxy } from './devProxy'
 import { normalizeStreamPartialImages, parseDefaultApiUrl } from './defaultApiUrl'
 import { readRuntimeEnv } from './runtimeEnv'
 import { isImportableConfigUrl } from './customProviderConfigUrl'
+import {
+  DEFAULT_GENERAL_API_PROFILE_ID,
+  createDefaultGeneralApiProfile,
+  normalizeGeneralApiProfiles,
+  normalizeModelGroups,
+} from './generalApiProfiles'
 
 const OPENAI_DEFAULT_BASE_URL = 'https://api.openai.com/v1'
 const RAW_DEFAULT_API_URL = readRuntimeEnv(import.meta.env.VITE_DEFAULT_API_URL)
@@ -536,6 +542,12 @@ export function normalizeSettings(input: Partial<AppSettings> | unknown): AppSet
     ? record.agentImageProfileId
     : active.id
 
+  const generalApiProfiles = normalizeGeneralApiProfiles(record.generalApiProfiles)
+  const generalActiveProfileId = typeof record.generalActiveProfileId === 'string' && generalApiProfiles.some((p) => p.id === record.generalActiveProfileId)
+    ? record.generalActiveProfileId
+    : generalApiProfiles[0].id
+  const modelGroups = normalizeModelGroups(record.modelGroups)
+
   return {
     baseUrl: active.baseUrl,
     apiKey: active.apiKey,
@@ -566,6 +578,9 @@ export function normalizeSettings(input: Partial<AppSettings> | unknown): AppSet
     agentImageProfileId,
     profiles,
     activeProfileId,
+    generalApiProfiles,
+    generalActiveProfileId,
+    modelGroups,
   }
 }
 
@@ -872,4 +887,7 @@ export const DEFAULT_SETTINGS: AppSettings = normalizeSettings({
   agentApiConfigMode: 'off',
   agentTextProfileId: null,
   agentImageProfileId: null,
+  generalApiProfiles: [createDefaultGeneralApiProfile()],
+  generalActiveProfileId: DEFAULT_GENERAL_API_PROFILE_ID,
+  modelGroups: [],
 })
