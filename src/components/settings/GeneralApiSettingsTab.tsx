@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { AppSettings, ModelHealthEntry } from '../../types'
 import { useStore } from '../../store'
 import { buildModelHealthKey, checkModelHealth } from '../../lib/modelHealth'
@@ -15,6 +16,17 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
   const batchSetModelHealth = useStore((s) => s.batchSetModelHealth)
   const setModelHealth = useStore((s) => s.setModelHealth)
 
+  // 卸载或重入时中止未完成的全局测活,避免写入已卸载组件的状态
+  const mountedRef = useRef(true)
+  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      abortRef.current?.abort()
+    }
+  }, [])
+
   // 全局测活:遍历所有分组,按各自 profile 逐个探测
   const checkAllGlobally = async () => {
     const allKeys: Array<{ profile: NonNullable<typeof activeProfile>; modelId: string; key: string }> = []
@@ -29,6 +41,10 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
       showToast('没有可测活的模型', 'info')
       return
     }
+    // 中止上一轮,启动新的
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     // 批量置为 checking,统一刷新 UI
     const checkingEntries: Record<string, ModelHealthEntry> = {}
     for (const item of allKeys) {
@@ -36,14 +52,15 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
     }
     batchSetModelHealth(checkingEntries)
 
-    // 并发探测,逐个回写结果
+    // 并发探测,逐个回写结果;绑定外部 signal,卸载时统一中止
     const results = await Promise.allSettled(
       allKeys.map(async (item) => {
-        const entry = await checkModelHealth(item.profile, item.modelId)
-        setModelHealth(item.key, entry)
+        const entry = await checkModelHealth(item.profile, item.modelId, controller.signal)
+        if (mountedRef.current && !controller.signal.aborted) setModelHealth(item.key, entry)
         return entry
       }),
     )
+    if (!mountedRef.current || controller.signal.aborted) return
     const okCount = results.filter((r) => r.status === 'fulfilled' && r.value.status === 'ok').length
     const failCount = results.length - okCount
     showToast(`全局测活完成:${okCount} 正常,${failCount} 失败`, failCount > 0 ? 'info' : 'success')
