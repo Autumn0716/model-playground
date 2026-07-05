@@ -146,7 +146,7 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
 
           <div>
             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">模型分组管理</h4>
-            <ModelGroupList profile={activeProfile} />
+            <ModelGroupList profile={activeProfile} onCommit={commitSettings} />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import type { ModelGroup, GeneralApiProfile } from '../../types'
+import type { AppSettings, ModelGroup, GeneralApiProfile } from '../../types'
 import { useStore } from '../../store'
 import ModelRow from './ModelRow'
 import { TrashIcon } from '../icons'
@@ -6,18 +6,19 @@ import { TrashIcon } from '../icons'
 interface ModelGroupCardProps {
   group: ModelGroup
   profile: GeneralApiProfile
+  /** 提交设置变更(走 SettingsModal.commitSettings,保持 draft 同步) */
+  onCommit: (next: AppSettings) => void
 }
 
-export default function ModelGroupCard({ group, profile }: ModelGroupCardProps) {
+export default function ModelGroupCard({ group, profile, onCommit }: ModelGroupCardProps) {
   const settings = useStore((s) => s.settings)
-  const setSettings = useStore((s) => s.setSettings)
   const setConfirmDialog = useStore((s) => s.setConfirmDialog)
   const clearModelHealthForModel = useStore((s) => s.clearModelHealthForModel)
 
   // 删除分组内单个模型:splice 出 modelIds,并清理测活缓存
   const deleteModel = (modelId: string) => {
     const nextModelIds = group.modelIds.filter((id) => id !== modelId)
-    setSettings({
+    onCommit({
       ...settings,
       modelGroups: settings.modelGroups.map((g) =>
         g.id === group.id ? { ...g, modelIds: nextModelIds, updatedAt: Date.now() } : g,
@@ -32,7 +33,7 @@ export default function ModelGroupCard({ group, profile }: ModelGroupCardProps) 
       title: '删除分组',
       message: `确定要删除分组「${group.name}」吗?该分组下 ${group.modelIds.length} 个模型将一并移除。`,
       action: () => {
-        setSettings({
+        onCommit({
           ...settings,
           modelGroups: settings.modelGroups.filter((g) => g.id !== group.id),
         })

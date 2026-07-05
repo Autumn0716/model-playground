@@ -1,13 +1,15 @@
 import { useMemo } from 'react'
-import type { GeneralApiProfile } from '../../types'
+import type { AppSettings, GeneralApiProfile } from '../../types'
 import { useStore } from '../../store'
 import ModelGroupCard from './ModelGroupCard'
 
 interface ModelGroupListProps {
   profile: GeneralApiProfile
+  /** 提交设置变更(走 SettingsModal.commitSettings,保持 draft 同步) */
+  onCommit: (next: AppSettings) => void
 }
 
-export default function ModelGroupList({ profile }: ModelGroupListProps) {
+export default function ModelGroupList({ profile, onCommit }: ModelGroupListProps) {
   const modelGroups = useStore((s) => s.settings.modelGroups)
   const groupsForProfile = useMemo(
     () => modelGroups.filter((g) => g.profileId === profile.id),
@@ -28,7 +30,7 @@ export default function ModelGroupList({ profile }: ModelGroupListProps) {
   return (
     <div className="space-y-3">
       {groupsForProfile.map((group) => (
-        <ModelGroupCard key={group.id} group={group} profile={profile} />
+        <ModelGroupCard key={group.id} group={group} profile={profile} onCommit={onCommit} />
       ))}
     </div>
   )
