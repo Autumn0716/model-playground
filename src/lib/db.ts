@@ -2,12 +2,14 @@ import type { AgentConversation, TaskRecord, StoredImage, StoredImageThumbnail }
 import { CURRENT_DB_NAME } from './projectIdentity'
 
 export const DB_NAME = CURRENT_DB_NAME
-export const DB_VERSION = 3
+export const DB_VERSION = 4
 export const STORE_TASKS = 'tasks'
 export const STORE_IMAGES = 'images'
 export const STORE_THUMBNAILS = 'thumbnails'
 export const STORE_AGENT_CONVERSATIONS = 'agentConversations'
+export const STORE_MIGRATION_METADATA = 'migrationMetadata'
 export const DB_STORE_NAMES = [STORE_TASKS, STORE_IMAGES, STORE_THUMBNAILS, STORE_AGENT_CONVERSATIONS] as const
+const ALL_DB_STORE_NAMES = [...DB_STORE_NAMES, STORE_MIGRATION_METADATA] as const
 const THUMBNAIL_MAX_SIZE = 720
 const THUMBNAIL_QUALITY = 0.9
 const THUMBNAIL_VERSION = 2
@@ -19,7 +21,7 @@ export function openDbByName(name: string, version = DB_VERSION): Promise<IDBDat
     const req = indexedDB.open(name, version)
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result
-      for (const storeName of DB_STORE_NAMES) {
+      for (const storeName of ALL_DB_STORE_NAMES) {
         if (!db.objectStoreNames.contains(storeName)) {
           db.createObjectStore(storeName, { keyPath: 'id' })
         }

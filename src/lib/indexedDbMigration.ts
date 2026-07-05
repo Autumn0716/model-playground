@@ -1,5 +1,12 @@
 import { CURRENT_DB_NAME, LEGACY_DB_NAME } from './projectIdentity'
-import { DB_STORE_NAMES, openDbByName } from './db'
+import { DB_STORE_NAMES, STORE_MIGRATION_METADATA, openDbByName } from './db'
+
+const LEGACY_RENAME_MIGRATION_ID = 'legacy-indexeddb-rename-v1'
+
+interface MigrationMetadataRecord {
+  id: string
+  completedAt: number
+}
 
 function dbExists(name: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -20,6 +27,14 @@ function dbExists(name: string): Promise<boolean> {
   })
 }
 
+function openExistingDb(name: string): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(name)
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
 function getAllRecords(db: IDBDatabase, storeName: string): Promise<unknown[]> {
   return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(storeName)) {
@@ -34,28 +49,18 @@ function getAllRecords(db: IDBDatabase, storeName: string): Promise<unknown[]> {
   })
 }
 
-function storeHasRecords(db: IDBDatabase, storeName: string): Promise<boolean> {
+function getMigrationCompletionRecord(db: IDBDatabase): Promise<MigrationMetadataRecord | undefined> {
   return new Promise((resolve, reject) => {
-    if (!db.objectStoreNames.contains(storeName)) {
-      resolve(false)
+    if (!db.objectStoreNames.contains(STORE_MIGRATION_METADATA)) {
+      resolve(undefined)
       return
     }
 
-    const tx = db.transaction(storeName, 'readonly')
-    const req = tx.objectStore(storeName).count()
-    req.onsuccess = () => resolve(req.result > 0)
+    const tx = db.transaction(STORE_MIGRATION_METADATA, 'readonly')
+    const req = tx.objectStore(STORE_MIGRATION_METADATA).get(LEGACY_RENAME_MIGRATION_ID)
+    req.onsuccess = () => resolve(req.result as MigrationMetadataRecord | undefined)
     req.onerror = () => reject(req.error)
   })
-}
-
-async function databaseHasRecords(db: IDBDatabase): Promise<boolean> {
-  for (const storeName of DB_STORE_NAMES) {
-    if (await storeHasRecords(db, storeName)) {
-      return true
-    }
-  }
-
-  return false
 }
 
 async function getLegacyRecords(db: IDBDatabase): Promise<Array<readonly [string, unknown[]]>> {
@@ -71,15 +76,13 @@ async function getLegacyRecords(db: IDBDatabase): Promise<Array<readonly [string
   return recordsByStore
 }
 
-function putAllRecordsAtomically(db: IDBDatabase, recordsByStore: ReadonlyArray<readonly [string, unknown[]]>): Promise<void> {
+function putAllRecordsAndCompletionMarkerAtomically(
+  db: IDBDatabase,
+  recordsByStore: ReadonlyArray<readonly [string, unknown[]]>,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (recordsByStore.length === 0) {
-      resolve()
-      return
-    }
-
     const tx = db.transaction(
-      recordsByStore.map(([storeName]) => storeName),
+      [...recordsByStore.map(([storeName]) => storeName), STORE_MIGRATION_METADATA],
       'readwrite',
     )
 
@@ -106,6 +109,11 @@ function putAllRecordsAtomically(db: IDBDatabase, recordsByStore: ReadonlyArray<
           store.put(record)
         }
       }
+
+      tx.objectStore(STORE_MIGRATION_METADATA).put({
+        id: LEGACY_RENAME_MIGRATION_ID,
+        completedAt: Date.now(),
+      } satisfies MigrationMetadataRecord)
     } catch (error) {
       try {
         tx.abort()
@@ -123,14 +131,14 @@ export async function migrateLegacyIndexedDb(): Promise<void> {
   const legacyExists = await dbExists(LEGACY_DB_NAME)
   if (!legacyExists) return
 
-  const legacyDb = await openDbByName(LEGACY_DB_NAME)
+  const legacyDb = await openExistingDb(LEGACY_DB_NAME)
   const currentDb = await openDbByName(CURRENT_DB_NAME)
 
   try {
-    if (await databaseHasRecords(currentDb)) return
+    if (await getMigrationCompletionRecord(currentDb)) return
 
     const recordsByStore = await getLegacyRecords(legacyDb)
-    await putAllRecordsAtomically(currentDb, recordsByStore)
+    await putAllRecordsAndCompletionMarkerAtomically(currentDb, recordsByStore)
   } finally {
     legacyDb.close()
     currentDb.close()

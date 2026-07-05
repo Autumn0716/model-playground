@@ -2,9 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { CURRENT_DB_NAME, LEGACY_DB_NAME } from './projectIdentity'
 import { migrateLegacyIndexedDb } from './indexedDbMigration'
-import { DB_VERSION, STORE_TASKS, STORE_IMAGES, STORE_THUMBNAILS, STORE_AGENT_CONVERSATIONS } from './db'
+import {
+  DB_VERSION,
+  STORE_TASKS,
+  STORE_IMAGES,
+  STORE_THUMBNAILS,
+  STORE_AGENT_CONVERSATIONS,
+  STORE_MIGRATION_METADATA,
+} from './db'
 
-const ALL_STORES = [STORE_TASKS, STORE_IMAGES, STORE_THUMBNAILS, STORE_AGENT_CONVERSATIONS]
+const ALL_STORES = [STORE_TASKS, STORE_IMAGES, STORE_THUMBNAILS, STORE_AGENT_CONVERSATIONS, STORE_MIGRATION_METADATA]
+const LEGACY_RENAME_MIGRATION_ID = 'legacy-indexeddb-rename-v1'
 
 async function resetDb(name: string) {
   await new Promise<void>((resolve, reject) => {
@@ -42,6 +50,17 @@ async function putRecord(dbName: string, storeName: string, record: { id: string
   db.close()
 }
 
+async function clearStore(dbName: string, storeName: string) {
+  const db = await openTestDb(dbName)
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite')
+    tx.objectStore(storeName).clear()
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+  db.close()
+}
+
 async function getAllRecords(dbName: string, storeName: string): Promise<unknown[]> {
   const db = await openTestDb(dbName)
   const result = await new Promise<unknown[]>((resolve, reject) => {
@@ -72,14 +91,18 @@ describe('migrateLegacyIndexedDb', () => {
 
     const tasks = await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)
     expect(tasks).toEqual([task])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([
+      expect.objectContaining({ id: LEGACY_RENAME_MIGRATION_ID }),
+    ])
   })
 
-  it('does not overwrite an already populated current database', async () => {
+  it('does not overwrite an already completed migration when the current database has data', async () => {
     const legacyTask = { id: 'task-legacy', prompt: 'legacy prompt', status: 'done', createdAt: 1000 }
     const currentTask = { id: 'task-current', prompt: 'current prompt', status: 'done', createdAt: 2000 }
 
     await putRecord(LEGACY_DB_NAME, STORE_TASKS, legacyTask)
     await putRecord(CURRENT_DB_NAME, STORE_TASKS, currentTask)
+    await putRecord(CURRENT_DB_NAME, STORE_MIGRATION_METADATA, { id: LEGACY_RENAME_MIGRATION_ID, completedAt: 1234 })
 
     await migrateLegacyIndexedDb()
 
@@ -87,22 +110,7 @@ describe('migrateLegacyIndexedDb', () => {
     expect(tasks).toEqual([currentTask])
   })
 
-  it('does not merge legacy data when the current database already has records in another store', async () => {
-    const legacyTask = { id: 'task-legacy', prompt: 'legacy prompt', status: 'done', createdAt: 1000 }
-    const currentImage = { id: 'img-current', dataUrl: 'data:image/png;base64,current', createdAt: 2000, source: 'upload' }
-
-    await putRecord(LEGACY_DB_NAME, STORE_TASKS, legacyTask)
-    await putRecord(CURRENT_DB_NAME, STORE_IMAGES, currentImage)
-
-    await migrateLegacyIndexedDb()
-
-    const tasks = await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)
-    const images = await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)
-    expect(tasks).toEqual([])
-    expect(images).toEqual([currentImage])
-  })
-
-  it('is idempotent', async () => {
+  it('is idempotent after recording migration completion', async () => {
     const task = { id: 'task-1', prompt: 'draw a cat', status: 'done', createdAt: 1000 }
     await putRecord(LEGACY_DB_NAME, STORE_TASKS, task)
 
@@ -111,6 +119,7 @@ describe('migrateLegacyIndexedDb', () => {
 
     const tasks = await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)
     expect(tasks).toEqual([task])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toHaveLength(1)
   })
 
   it('copies multiple stores', async () => {
@@ -165,10 +174,82 @@ describe('migrateLegacyIndexedDb', () => {
 
     expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([])
     expect(await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)).toEqual([])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([])
 
     await expect(migrateLegacyIndexedDb()).resolves.toBeUndefined()
     expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([task])
     expect(await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)).toEqual([image])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([
+      expect.objectContaining({ id: LEGACY_RENAME_MIGRATION_ID }),
+    ])
+  })
+
+  it('does not reimport legacy data after current user data is cleared post-migration', async () => {
+    const legacyTask = { id: 'task-legacy', prompt: 'legacy prompt', status: 'done', createdAt: 1000 }
+    const legacyImage = { id: 'img-legacy', dataUrl: 'data:image/png;base64,legacy', createdAt: 1000, source: 'upload' }
+
+    await putRecord(LEGACY_DB_NAME, STORE_TASKS, legacyTask)
+    await putRecord(LEGACY_DB_NAME, STORE_IMAGES, legacyImage)
+
+    await migrateLegacyIndexedDb()
+    await clearStore(CURRENT_DB_NAME, STORE_TASKS)
+    await clearStore(CURRENT_DB_NAME, STORE_IMAGES)
+    await clearStore(CURRENT_DB_NAME, STORE_THUMBNAILS)
+    await clearStore(CURRENT_DB_NAME, STORE_AGENT_CONVERSATIONS)
+
+    await migrateLegacyIndexedDb()
+
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)).toEqual([])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([
+      expect.objectContaining({ id: LEGACY_RENAME_MIGRATION_ID }),
+    ])
+  })
+
+  it('does not treat a failed migration as complete when current data is added later', async () => {
+    const legacyTask = { id: 'task-legacy', prompt: 'legacy prompt', status: 'done', createdAt: 1000 }
+    const currentTask = { id: 'task-current', prompt: 'current prompt', status: 'done', createdAt: 2000 }
+
+    await putRecord(LEGACY_DB_NAME, STORE_TASKS, legacyTask)
+
+    let failTaskWrite = true
+    const nativeTransaction = IDBDatabase.prototype.transaction
+    vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(function (
+      this: IDBDatabase,
+      storeNames: string | Iterable<string>,
+      mode?: IDBTransactionMode,
+      options?: IDBTransactionOptions,
+    ) {
+      const tx = nativeTransaction.call(this, storeNames as never, mode, options)
+      const targetsTasksStore = typeof storeNames === 'string'
+        ? storeNames === STORE_TASKS
+        : Array.from(storeNames).includes(STORE_TASKS)
+      if (this.name === CURRENT_DB_NAME && mode === 'readwrite' && targetsTasksStore) {
+        const store = tx.objectStore(STORE_TASKS)
+        const nativePut = store.put.bind(store)
+        store.put = ((value: unknown, key?: IDBValidKey) => {
+          if (failTaskWrite) {
+            failTaskWrite = false
+            throw new Error('simulated task write failure')
+          }
+          return nativePut(value, key)
+        }) as typeof store.put
+      }
+      return tx
+    })
+
+    await expect(migrateLegacyIndexedDb()).rejects.toThrow('simulated task write failure')
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([])
+
+    vi.restoreAllMocks()
+
+    await putRecord(CURRENT_DB_NAME, STORE_TASKS, currentTask)
+    await migrateLegacyIndexedDb()
+
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([currentTask, legacyTask])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_MIGRATION_METADATA)).toEqual([
+      expect.objectContaining({ id: LEGACY_RENAME_MIGRATION_ID }),
+    ])
   })
 
   it('no-ops gracefully when legacy database does not exist', async () => {
