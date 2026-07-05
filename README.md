@@ -240,7 +240,7 @@ $env:VITE_DEFAULT_API_URL="https://api.openai.com/v1"; npm run deploy:cf
 <details>
 <summary><strong>🐳 方式三：Docker 部署</strong></summary>
 
-官方镜像已发布至 GitHub Container Registry。Docker 部署支持在运行时注入默认配置。
+若你将镜像发布到 GitHub Container Registry，可使用以下镜像命名与 Docker 部署示例。Docker 部署支持在运行时注入默认配置。
 
 **环境变量说明：**
 
@@ -320,7 +320,7 @@ services:
 
 **更新说明：**
 
-使用 `latest` 标签时，重新拉取镜像并重启即可更新（如 `docker compose pull && docker compose up -d`）。若需固定版本可使用官方提供的版本号标签（如 `0.2.x`）。
+使用 `latest` 标签时，重新拉取镜像并重启即可更新（如 `docker compose pull && docker compose up -d`）。若需固定版本，可改用你实际发布的版本号标签（如 `0.2.x`）。
 
 </details>
 
