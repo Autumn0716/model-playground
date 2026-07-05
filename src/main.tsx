@@ -26,7 +26,12 @@ if ('serviceWorker' in navigator) {
 
 async function bootstrap() {
   migrateLegacyLocalStorage()
-  await migrateLegacyIndexedDb()
+
+  try {
+    await migrateLegacyIndexedDb()
+  } catch (error) {
+    console.error('IndexedDB migration failed:', error)
+  }
 
   const { default: App } = await import('./App')
 
