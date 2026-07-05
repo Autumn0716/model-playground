@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { CURRENT_REPO } from '../lib/projectIdentity'
 
-const REPO = 'CookSleep/gpt_image_playground'
+const REPO = CURRENT_REPO
 const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`
 
 function compareVersions(a: string, b: string) {
