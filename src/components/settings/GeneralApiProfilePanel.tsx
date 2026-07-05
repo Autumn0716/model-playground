@@ -138,6 +138,9 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     const controller = new AbortController()
     abortRef.current = controller
     setFetchingModels(true)
+    // 渐进式:先开弹窗(空候选 + loading 骨架屏),让用户立即看到反馈
+    setCandidateGroups([])
+    setShowPicker(true)
     try {
       const ids = await fetchModelList(activeProfile, controller.signal)
       if (!mountedRef.current || controller.signal.aborted) return
@@ -147,12 +150,13 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
       }
       const groups = groupModelsByLcp(ids)
       setCandidateGroups(groups)
-      setShowPicker(true)
       showToast(`获取到 ${ids.length} 个模型,分成 ${groups.length} 组`, 'success')
     } catch (err) {
       if (!mountedRef.current || controller.signal.aborted) return
       const msg = err instanceof Error ? err.message : String(err)
       showToast(`获取模型失败:${msg}`, 'error')
+      // 失败时关闭弹窗,避免空骨架屏长期停留
+      setShowPicker(false)
     } finally {
       if (mountedRef.current && !controller.signal.aborted) setFetchingModels(false)
     }
@@ -325,6 +329,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
         <ModelPickerModal
           profile={activeProfile}
           candidateGroups={candidateGroups}
+          loading={fetchingModels}
           onCommit={onCommit}
           onClose={() => {
             setShowPicker(false)
