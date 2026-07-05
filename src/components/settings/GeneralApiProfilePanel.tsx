@@ -44,13 +44,10 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
   const activeProfileId = settings.generalActiveProfileId
   const activeProfile = profiles.find((p) => p.id === activeProfileId) ?? profiles[0]
   const showToast = useStore((s) => s.showToast)
-  const setConfirmDialog = useStore((s) => s.setConfirmDialog)
   const setModelHealth = useStore((s) => s.setModelHealth)
   const batchSetModelHealth = useStore((s) => s.batchSetModelHealth)
-  const clearModelHealthForProfile = useStore((s) => s.clearModelHealthForProfile)
 
   const [showApiKey, setShowApiKey] = useState(false)
-  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [fetchingModels, setFetchingModels] = useState(false)
   const [candidateGroups, setCandidateGroups] = useState<CandidateGroup[]>([])
   const [showPicker, setShowPicker] = useState(false)
@@ -75,55 +72,6 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     onCommit({
       ...settings,
       generalApiProfiles: profiles.map((p) => (p.id === activeProfile.id ? { ...p, ...patch } : p)),
-    })
-  }
-
-  // 切换激活 profile
-  const switchProfile = (id: string) => {
-    onCommit({ ...settings, generalActiveProfileId: id })
-    setShowProfileMenu(false)
-  }
-
-  // 新建空白配置
-  const createProfile = () => {
-    const id = newId('general')
-    onCommit({
-      ...settings,
-      generalApiProfiles: [...profiles, { id, name: '新配置', baseUrl: '', apiKey: '', apiMode: 'chat', apiProxy: false }],
-      generalActiveProfileId: id,
-    })
-    setShowProfileMenu(false)
-  }
-
-  // 复制当前配置
-  const duplicateProfile = () => {
-    const id = newId('general')
-    onCommit({
-      ...settings,
-      generalApiProfiles: [...profiles, { ...activeProfile, id, name: `${activeProfile.name}(复制)` }],
-      generalActiveProfileId: id,
-    })
-    setShowProfileMenu(false)
-  }
-
-  // 删除当前配置(级联删除模型分组 + 清理测活记录)
-  const deleteProfile = () => {
-    if (profiles.length <= 1) {
-      showToast('至少保留一个配置', 'info')
-      return
-    }
-    setConfirmDialog({
-      title: '删除配置',
-      message: `确定要删除配置「${activeProfile.name}」吗?关联的模型分组也会一并删除。`,
-      action: () => {
-        onCommit({
-          ...settings,
-          generalApiProfiles: profiles.filter((p) => p.id !== activeProfile.id),
-          generalActiveProfileId: profiles.find((p) => p.id !== activeProfile.id)!.id,
-          modelGroups: settings.modelGroups.filter((g) => g.profileId !== activeProfile.id),
-        })
-        clearModelHealthForProfile(activeProfile.id)
-      },
     })
   }
 
@@ -205,39 +153,9 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-white/[0.08] p-4 space-y-3">
-      {/* 当前配置切换 */}
-      <div>
-        <div className="mb-1.5 text-sm text-gray-600 dark:text-gray-300">当前配置</div>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="w-full flex items-center justify-between rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-white/[0.06] transition-all duration-200 active:scale-[0.98]"
-          >
-            <span className="truncate">{activeProfile.name}</span>
-            <svg className={`w-4 h-4 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {showProfileMenu && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-10 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-gray-900 shadow-lg max-h-60 overflow-y-auto custom-scrollbar">
-              {profiles.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => switchProfile(p.id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98] ${p.id === activeProfile.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
-                >
-                  {p.name}
-                </button>
-              ))}
-              <div className="border-t border-gray-100 dark:border-white/[0.06] py-1">
-                <button onClick={createProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98]">+ 新建配置</button>
-                <button onClick={duplicateProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98]">复制当前配置</button>
-                <button onClick={deleteProfile} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98]">删除当前配置</button>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* 当前配置名(只读展示,切换在第二栏 ProfileSidebar) */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">{activeProfile.name}</div>
       </div>
 
       {/* Base URL */}
