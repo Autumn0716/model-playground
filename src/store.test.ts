@@ -132,7 +132,7 @@ import { clearAgentConversations, clearImages, clearTasks, getAllAgentConversati
 import { callAgentResponsesApi, callBatchImageSingle } from './lib/agentApi'
 import { getFalQueuedImageResult } from './lib/falAiImageApi'
 import { removeKeyedBackgroundFromDataUrl } from './lib/transparentImage'
-import { cleanStaleAgentInputDrafts, clearFailedTasks, deleteAgentRoundFromConversation, deleteFavoriteCollection, editOutputs, getActiveAgentRounds, getAgentConversationTaskIds, getAgentRoundTaskIds, getErrorToastMessage, getPersistedState, getTaskApiProfile, importData, initStore, markInterruptedOpenAIRunningTasks, migratePersistedState, regenerateAgentAssistantMessage, remapAgentRoundMentionsForPathChange, removeTask, reuseConfig, stopAgentResponse, submitAgentMessage, submitTask, taskMatchesFilterStatus, taskMatchesSearchQuery, useStore } from './store'
+import { cleanStaleAgentInputDrafts, clearFailedTasks, deleteAgentRoundFromConversation, deleteFavoriteCollection, editOutputs, exportData, getActiveAgentRounds, getAgentConversationTaskIds, getAgentRoundTaskIds, getErrorToastMessage, getPersistedState, getTaskApiProfile, importData, initStore, markInterruptedOpenAIRunningTasks, migratePersistedState, regenerateAgentAssistantMessage, remapAgentRoundMentionsForPathChange, removeTask, reuseConfig, stopAgentResponse, submitAgentMessage, submitTask, taskMatchesFilterStatus, taskMatchesSearchQuery, useStore } from './store'
 
 const imageA = { id: 'image-a', dataUrl: 'data:image/png;base64,a' }
 const imageB = { id: 'image-b', dataUrl: 'data:image/png;base64,b' }
@@ -574,7 +574,7 @@ describe('input persistence setting', () => {
     expect(persisted.inputImages).toEqual([])
   })
 
-  it('persists general API profiles inside settings', () => {
+  it('continues persisting general API profiles after the project key rename', () => {
     useStore.setState({
       settings: {
         ...DEFAULT_SETTINGS,
@@ -633,6 +633,32 @@ describe('input persistence setting', () => {
         apiProxy: false,
       },
     ])
+  })
+
+  it('uses the model-playground backup filename prefix for exports', async () => {
+    const anchor = {
+      href: '',
+      download: '',
+      click: vi.fn(),
+    }
+    const createElement = vi.fn(() => anchor as unknown as HTMLAnchorElement)
+    const createObjectURL = vi.fn(() => 'blob:mock-export')
+    const revokeObjectURL = vi.fn()
+
+    vi.stubGlobal('document', { createElement })
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    try {
+      await exportData({ exportConfig: true, exportTasks: false })
+
+      expect(createElement).toHaveBeenCalledWith('a')
+      expect(anchor.download).toMatch(/^model-playground-backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.zip$/)
+      expect(anchor.click).toHaveBeenCalledTimes(1)
+      expect(createObjectURL).toHaveBeenCalledTimes(1)
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-export')
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'gpt-image-playground-v0.1.5'
+const CACHE_NAME = 'model-playground-v0.1.5'
+const LEGACY_CACHE_PREFIX = 'gpt-image-playground-v'
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pwa-icon.svg']
 
 self.addEventListener('install', (event) => {
@@ -11,7 +12,12 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith(LEGACY_CACHE_PREFIX) || key !== CACHE_NAME)
+          .map((key) => caches.delete(key)),
+      ),
     ),
   )
   self.clients.claim()
