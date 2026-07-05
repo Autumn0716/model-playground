@@ -75,6 +75,9 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     })
   }
 
+  // 缓存 key:按 baseUrl + apiKey + apiMode 区分,存 sessionStorage(会话级)
+  const modelCacheKey = `${activeProfile.baseUrl.trim()}|${activeProfile.apiKey.trim()}|${activeProfile.apiMode}`
+
   // 拉取模型列表并用 LCP 分组,打开选择弹窗
   const handleFetchModels = async () => {
     if (!activeProfile.baseUrl.trim()) {
@@ -85,10 +88,30 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
-    setFetchingModels(true)
-    // 渐进式:先开弹窗(空候选 + loading 骨架屏),让用户立即看到反馈
-    setCandidateGroups([])
-    setShowPicker(true)
+
+    // 先尝试读缓存:有缓存就直接显示(瞬间),后台静默刷新
+    let usedCache = false
+    try {
+      const cached = window.sessionStorage.getItem(`models:${modelCacheKey}`)
+      if (cached) {
+        const cachedIds = JSON.parse(cached) as string[]
+        if (cachedIds.length > 0) {
+          const groups = groupModelsByLcp(cachedIds)
+          setCandidateGroups(groups)
+          setShowPicker(true)
+          setFetchingModels(true) // 仍显示 loading(后台刷新中)
+          usedCache = true
+        }
+      }
+    } catch { /* 缓存损坏则忽略 */ }
+
+    if (!usedCache) {
+      // 无缓存:开弹窗 + 骨架屏
+      setFetchingModels(true)
+      setCandidateGroups([])
+      setShowPicker(true)
+    }
+
     try {
       const ids = await fetchModelList(activeProfile, controller.signal)
       if (!mountedRef.current || controller.signal.aborted) return
@@ -96,15 +119,19 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
         showToast('未获取到模型', 'info')
         return
       }
+      // 写缓存
+      try { window.sessionStorage.setItem(`models:${modelCacheKey}`, JSON.stringify(ids)) } catch { /* 配额满则忽略 */ }
       const groups = groupModelsByLcp(ids)
       setCandidateGroups(groups)
-      showToast(`获取到 ${ids.length} 个模型,分成 ${groups.length} 组`, 'success')
+      if (!usedCache) showToast(`获取到 ${ids.length} 个模型,分成 ${groups.length} 组`, 'success')
     } catch (err) {
       if (!mountedRef.current || controller.signal.aborted) return
       const msg = err instanceof Error ? err.message : String(err)
-      showToast(`获取模型失败:${msg}`, 'error')
-      // 失败时关闭弹窗,避免空骨架屏长期停留
-      setShowPicker(false)
+      // 有缓存时网络失败不报错(缓存仍可用)
+      if (!usedCache) {
+        showToast(`获取模型失败:${msg}`, 'error')
+        setShowPicker(false)
+      }
     } finally {
       if (mountedRef.current && !controller.signal.aborted) setFetchingModels(false)
     }
@@ -153,9 +180,16 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-white/[0.08] p-4 space-y-3">
-      {/* 当前配置名(只读展示,切换在第二栏 ProfileSidebar) */}
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">{activeProfile.name}</div>
+      {/* 配置名称(可编辑) */}
+      <div>
+        <label className="block mb-1.5 text-sm text-gray-600 dark:text-gray-300">配置名称</label>
+        <input
+          type="text"
+          value={activeProfile.name}
+          onChange={(e) => updateActiveProfile({ name: e.target.value })}
+          placeholder="给这个配置起个名字"
+          className="w-full rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 outline-none focus:border-blue-400"
+        />
       </div>
 
       {/* Base URL */}
