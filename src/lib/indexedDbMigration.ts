@@ -58,21 +58,62 @@ async function databaseHasRecords(db: IDBDatabase): Promise<boolean> {
   return false
 }
 
-function putAllRecords(db: IDBDatabase, storeName: string, records: unknown[]): Promise<void> {
+async function getLegacyRecords(db: IDBDatabase): Promise<Array<readonly [string, unknown[]]>> {
+  const recordsByStore: Array<readonly [string, unknown[]]> = []
+
+  for (const storeName of DB_STORE_NAMES) {
+    const records = await getAllRecords(db, storeName)
+    if (records.length > 0) {
+      recordsByStore.push([storeName, records] as const)
+    }
+  }
+
+  return recordsByStore
+}
+
+function putAllRecordsAtomically(db: IDBDatabase, recordsByStore: ReadonlyArray<readonly [string, unknown[]]>): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (records.length === 0) {
+    if (recordsByStore.length === 0) {
       resolve()
       return
     }
 
-    const tx = db.transaction(storeName, 'readwrite')
-    const store = tx.objectStore(storeName)
-    for (const record of records) {
-      store.put(record)
+    const tx = db.transaction(
+      recordsByStore.map(([storeName]) => storeName),
+      'readwrite',
+    )
+
+    let settled = false
+    const resolveOnce = () => {
+      if (settled) return
+      settled = true
+      resolve()
     }
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-    tx.onabort = () => reject(tx.error)
+    const rejectOnce = (error: unknown) => {
+      if (settled) return
+      settled = true
+      reject(error)
+    }
+
+    tx.oncomplete = () => resolveOnce()
+    tx.onerror = () => rejectOnce(tx.error ?? new Error('IndexedDB migration transaction failed'))
+    tx.onabort = () => rejectOnce(tx.error ?? new Error('IndexedDB migration transaction aborted'))
+
+    try {
+      for (const [storeName, records] of recordsByStore) {
+        const store = tx.objectStore(storeName)
+        for (const record of records) {
+          store.put(record)
+        }
+      }
+    } catch (error) {
+      try {
+        tx.abort()
+      } catch {
+        // Ignore abort errors from transactions that already started failing.
+      }
+      rejectOnce(error)
+    }
   })
 }
 
@@ -88,12 +129,8 @@ export async function migrateLegacyIndexedDb(): Promise<void> {
   try {
     if (await databaseHasRecords(currentDb)) return
 
-    for (const storeName of DB_STORE_NAMES) {
-      const records = await getAllRecords(legacyDb, storeName)
-      if (records.length > 0) {
-        await putAllRecords(currentDb, storeName, records)
-      }
-    }
+    const recordsByStore = await getLegacyRecords(legacyDb)
+    await putAllRecordsAtomically(currentDb, recordsByStore)
   } finally {
     legacyDb.close()
     currentDb.close()

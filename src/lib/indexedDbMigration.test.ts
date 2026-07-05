@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import 'fake-indexeddb/auto'
 import { CURRENT_DB_NAME, LEGACY_DB_NAME } from './projectIdentity'
 import { migrateLegacyIndexedDb } from './indexedDbMigration'
@@ -55,6 +55,10 @@ async function getAllRecords(dbName: string, storeName: string): Promise<unknown
 }
 
 describe('migrateLegacyIndexedDb', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   beforeEach(async () => {
     await resetDb(LEGACY_DB_NAME)
     await resetDb(CURRENT_DB_NAME)
@@ -122,6 +126,49 @@ describe('migrateLegacyIndexedDb', () => {
     const images = await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)
     expect(tasks).toEqual([task])
     expect(images).toEqual([image])
+  })
+
+  it('does not strand partial data when a multi-store migration write fails', async () => {
+    const task = { id: 'task-1', prompt: 'test', status: 'done', createdAt: 1000 }
+    const image = { id: 'img-1', dataUrl: 'data:image/png;base64,abc', createdAt: 1000, source: 'upload' }
+
+    await putRecord(LEGACY_DB_NAME, STORE_TASKS, task)
+    await putRecord(LEGACY_DB_NAME, STORE_IMAGES, image)
+
+    let failImageWrite = true
+    const nativeTransaction = IDBDatabase.prototype.transaction
+    vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(function (
+      this: IDBDatabase,
+      storeNames: string | string[],
+      mode?: IDBTransactionMode,
+      options?: IDBTransactionOptions,
+    ) {
+      const tx = nativeTransaction.call(this, storeNames as never, mode, options)
+      const targetsImagesStore = Array.isArray(storeNames)
+        ? storeNames.includes(STORE_IMAGES)
+        : storeNames === STORE_IMAGES
+      if (this.name === CURRENT_DB_NAME && mode === 'readwrite' && targetsImagesStore) {
+        const store = tx.objectStore(STORE_IMAGES)
+        const nativePut = store.put.bind(store)
+        store.put = ((value: unknown, key?: IDBValidKey) => {
+          if (failImageWrite) {
+            failImageWrite = false
+            throw new Error('simulated image write failure')
+          }
+          return nativePut(value, key)
+        }) as typeof store.put
+      }
+      return tx
+    })
+
+    await expect(migrateLegacyIndexedDb()).rejects.toThrow('simulated image write failure')
+
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)).toEqual([])
+
+    await expect(migrateLegacyIndexedDb()).resolves.toBeUndefined()
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_TASKS)).toEqual([task])
+    expect(await getAllRecords(CURRENT_DB_NAME, STORE_IMAGES)).toEqual([image])
   })
 
   it('no-ops gracefully when legacy database does not exist', async () => {
