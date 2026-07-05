@@ -562,6 +562,67 @@ describe('input persistence setting', () => {
     expect(persisted.prompt).toBe('')
     expect(persisted.inputImages).toEqual([])
   })
+
+  it('persists general API profiles inside settings', () => {
+    useStore.setState({
+      settings: {
+        ...DEFAULT_SETTINGS,
+        generalApiProfiles: [
+          {
+            id: 'default-general',
+            name: '默认',
+            baseUrl: '',
+            apiKey: '',
+            apiMode: 'chat',
+            apiProxy: false,
+          },
+          {
+            id: 'gp-relay',
+            name: 'Relay',
+            baseUrl: 'https://relay.example.com/v1',
+            apiKey: 'sk-relay',
+            apiMode: 'responses',
+            apiProxy: false,
+          },
+        ],
+        generalActiveProfileId: 'gp-relay',
+      },
+    })
+
+    const persisted = getPersistedState(useStore.getState()) as {
+      settings?: {
+        generalApiProfiles?: Array<{
+          id: string
+          name: string
+          baseUrl: string
+          apiKey: string
+          apiMode: string
+          apiProxy: boolean
+        }>
+        generalActiveProfileId?: string
+      }
+    }
+
+    expect(persisted.settings?.generalActiveProfileId).toBe('gp-relay')
+    expect(persisted.settings?.generalApiProfiles).toEqual([
+      {
+        id: 'default-general',
+        name: '默认',
+        baseUrl: '',
+        apiKey: '',
+        apiMode: 'chat',
+        apiProxy: false,
+      },
+      {
+        id: 'gp-relay',
+        name: 'Relay',
+        baseUrl: 'https://relay.example.com/v1',
+        apiKey: 'sk-relay',
+        apiMode: 'responses',
+        apiProxy: false,
+      },
+    ])
+  })
 })
 
 describe('agent conversation persistence', () => {
