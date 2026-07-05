@@ -1,7 +1,9 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import type { AppSettings, CandidateGroup, CandidateModel, GeneralApiProfile, ModelGroup } from '../../types'
 import { useStore } from '../../store'
 import { useCloseOnEscape } from '../../hooks/useCloseOnEscape'
+import { usePreventBackgroundScroll } from '../../hooks/usePreventBackgroundScroll'
 import { PlusIcon, CloseIcon } from '../icons'
 
 interface ModelPickerModalProps {
@@ -43,10 +45,9 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const settings = useStore((s) => s.settings)
   const showToast = useStore((s) => s.showToast)
-  // 注:不调 usePreventBackgroundScroll,也不用 createPortal。
-  // 弹窗以 position:fixed + z-[80] 渲染在 SettingsModal 的 DOM 子树内,
-  // SettingsModal 的 usePreventBackgroundScroll 的 allowRefs 包含本弹窗,
-  // 因此弹窗内的 wheel 滚动不会被阻止。
+  const scrollBoundaryRef = useRef<HTMLDivElement>(null)
+  // 注册本弹窗的滚动边界到全局注册表,让 SettingsModal 的 wheel 锁也能放行
+  usePreventBackgroundScroll(true, scrollBoundaryRef)
   useCloseOnEscape(true, onClose)
 
   const savedGroups = settings.modelGroups
@@ -159,10 +160,11 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
     })
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-overlay-in" onClick={onClose} />
       <div
+        ref={scrollBoundaryRef}
         className="relative z-10 w-full max-w-2xl rounded-3xl border border-white/50 bg-white/95 shadow-2xl ring-1 ring-black/5 animate-modal-in dark:border-white/[0.08] dark:bg-gray-900/95 dark:ring-white/10 flex h-[80vh] flex-col overflow-hidden"
       >
         <div className="flex items-center justify-between shrink-0 p-5 border-b border-gray-100 dark:border-white/[0.08]">
@@ -306,6 +308,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

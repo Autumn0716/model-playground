@@ -8,15 +8,17 @@ let previousBodyOverflow = ''
 let previousBodyOverscrollBehavior = ''
 let previousDocumentOverscrollBehavior = ''
 
-function getAllowedRoot(target: EventTarget | null, allowRefs?: ScrollBoundaryRef | ScrollBoundaryRef[]) {
-  if (!(target instanceof Node) || !allowRefs) return null
+// 全局注册表:所有活跃的 usePreventBackgroundScroll 实例把允许滚动的边界 ref 注册到这里。
+// 这样通过 createPortal 渲染到 document.body 的弹窗也能注册自己的滚动容器,
+// 让 SettingsModal 等父级锁的 wheel 拦截器识别并放行。
+const registeredBoundaries: Set<ScrollBoundaryRef> = new Set()
 
-  const refs = Array.isArray(allowRefs) ? allowRefs : [allowRefs]
-  for (const ref of refs) {
+function findAllowedRoot(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof Node)) return null
+  for (const ref of registeredBoundaries) {
     const element = ref.current
     if (element?.contains(target)) return element
   }
-
   return null
 }
 
@@ -60,9 +62,32 @@ function canScrollWithin(root: HTMLElement, target: EventTarget | null, delta: S
   return false
 }
 
+let wheelListenerAttached = false
+
+function ensureWheelListener() {
+  if (wheelListenerAttached) return
+  wheelListenerAttached = true
+
+  const preventOutsideWheel = (event: WheelEvent) => {
+    // 遍历所有已注册的滚动边界,只要事件发生在任一边界内且可滚动,就放行
+    const root = findAllowedRoot(event.target)
+    if (!root || !canScrollWithin(root, event.target, { x: event.deltaX, y: event.deltaY })) {
+      event.preventDefault()
+    }
+  }
+
+  document.addEventListener('wheel', preventOutsideWheel, { capture: true, passive: false })
+}
+
 export function usePreventBackgroundScroll(active: boolean, allowRefs?: ScrollBoundaryRef | ScrollBoundaryRef[]) {
   useEffect(() => {
     if (!active) return
+
+    // 注册本实例的滚动边界到全局集合
+    const refs: ScrollBoundaryRef[] = allowRefs
+      ? (Array.isArray(allowRefs) ? allowRefs : [allowRefs])
+      : []
+    for (const ref of refs) registeredBoundaries.add(ref)
 
     if (lockCount === 0) {
       previousBodyOverflow = document.body.style.overflow
@@ -73,16 +98,10 @@ export function usePreventBackgroundScroll(active: boolean, allowRefs?: ScrollBo
       document.documentElement.style.overscrollBehavior = 'none'
     }
     lockCount += 1
+    ensureWheelListener()
 
     let lastTouchX = 0
     let lastTouchY = 0
-
-    const preventOutsideWheel = (event: WheelEvent) => {
-      const root = getAllowedRoot(event.target, allowRefs)
-      if (!root || !canScrollWithin(root, event.target, { x: event.deltaX, y: event.deltaY })) {
-        event.preventDefault()
-      }
-    }
 
     const trackTouchStart = (event: TouchEvent) => {
       const touch = event.touches[0]
@@ -93,7 +112,7 @@ export function usePreventBackgroundScroll(active: boolean, allowRefs?: ScrollBo
 
     const preventOutsideTouch = (event: TouchEvent) => {
       const touch = event.touches[0]
-      const root = getAllowedRoot(event.target, allowRefs)
+      const root = findAllowedRoot(event.target)
       if (!touch || !root) {
         event.preventDefault()
         return
@@ -106,12 +125,12 @@ export function usePreventBackgroundScroll(active: boolean, allowRefs?: ScrollBo
       if (!canScrollWithin(root, event.target, delta)) event.preventDefault()
     }
 
-    document.addEventListener('wheel', preventOutsideWheel, { capture: true, passive: false })
     document.addEventListener('touchstart', trackTouchStart, { capture: true, passive: true })
     document.addEventListener('touchmove', preventOutsideTouch, { capture: true, passive: false })
 
     return () => {
-      document.removeEventListener('wheel', preventOutsideWheel, { capture: true })
+      for (const ref of refs) registeredBoundaries.delete(ref)
+
       document.removeEventListener('touchstart', trackTouchStart, { capture: true })
       document.removeEventListener('touchmove', preventOutsideTouch, { capture: true })
 
@@ -124,4 +143,3 @@ export function usePreventBackgroundScroll(active: boolean, allowRefs?: ScrollBo
     }
   }, [active, allowRefs])
 }
-
