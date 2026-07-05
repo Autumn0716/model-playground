@@ -5,19 +5,34 @@ import {
   LEGACY_PERSIST_KEY,
 } from './projectIdentity'
 
-function copyLocalStorageValue(legacyKey: string, currentKey: string) {
-  const current = window.localStorage.getItem(currentKey)
-  if (current !== null) return
+function getLocalStorage(): Storage | null {
+  if (typeof window === 'undefined') return null
 
-  const legacy = window.localStorage.getItem(legacyKey)
-  if (legacy === null) return
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
 
-  window.localStorage.setItem(currentKey, legacy)
+function copyLocalStorageValue(storage: Storage, legacyKey: string, currentKey: string) {
+  try {
+    const current = storage.getItem(currentKey)
+    if (current !== null) return
+
+    const legacy = storage.getItem(legacyKey)
+    if (legacy === null) return
+
+    storage.setItem(currentKey, legacy)
+  } catch {
+    // Ignore storage access failures so startup migration never blocks app boot.
+  }
 }
 
 export function migrateLegacyLocalStorage() {
-  if (typeof window === 'undefined') return
+  const storage = getLocalStorage()
+  if (storage === null) return
 
-  copyLocalStorageValue(LEGACY_PERSIST_KEY, CURRENT_PERSIST_KEY)
-  copyLocalStorageValue(LEGACY_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY, CURRENT_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY)
+  copyLocalStorageValue(storage, LEGACY_PERSIST_KEY, CURRENT_PERSIST_KEY)
+  copyLocalStorageValue(storage, LEGACY_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY, CURRENT_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY)
 }

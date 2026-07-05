@@ -76,4 +76,20 @@ describe('migrateLegacyLocalStorage', () => {
 
     expect(localStorage.getItem(CURRENT_PERSIST_KEY)).toBe(JSON.stringify({ state: { prompt: 'legacy' }, version: 2 }))
   })
+
+  it('does not throw during startup when localStorage access fails', () => {
+    const securityError = new DOMException('Access denied', 'SecurityError')
+    const windowWithFailingStorage = {}
+
+    Object.defineProperty(windowWithFailingStorage, 'localStorage', {
+      configurable: true,
+      get() {
+        throw securityError
+      },
+    })
+
+    vi.stubGlobal('window', windowWithFailingStorage)
+
+    expect(() => migrateLegacyLocalStorage()).not.toThrow()
+  })
 })
