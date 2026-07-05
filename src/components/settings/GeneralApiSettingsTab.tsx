@@ -72,7 +72,7 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
         <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200">通用 API 配置</h4>
         <button
           onClick={checkAllGlobally}
-          className="rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white/[0.06] transition"
+          className="rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white/[0.06] transition-all duration-200 active:scale-[0.98]"
         >
           测活全部
         </button>

@@ -51,7 +51,7 @@ export default function ModelGroupCard({ group, profile }: ModelGroupCardProps) 
         </div>
         <button
           onClick={confirmDeleteGroup}
-          className="shrink-0 ml-3 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+          className="shrink-0 ml-3 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98]"
         >
           <TrashIcon className="w-3.5 h-3.5" />
           删除分组

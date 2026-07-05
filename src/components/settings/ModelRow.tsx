@@ -75,13 +75,13 @@ export default function ModelRow({ profile, modelId, onDelete }: ModelRowProps) 
         <button
           onClick={runCheck}
           disabled={spinning}
-          className="rounded-md px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition disabled:opacity-50"
+          className="rounded-md px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
         >
           测活
         </button>
         <button
           onClick={onDelete}
-          className="rounded-md p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+          className="rounded-md p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98]"
           aria-label={`删除 ${modelId}`}
         >
           <TrashIcon className="w-3.5 h-3.5" />

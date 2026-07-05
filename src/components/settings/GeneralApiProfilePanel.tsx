@@ -208,7 +208,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
           <button
             type="button"
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="w-full flex items-center justify-between rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-white/[0.06] transition"
+            className="w-full flex items-center justify-between rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-white/[0.06] transition-all duration-200 active:scale-[0.98]"
           >
             <span className="truncate">{activeProfile.name}</span>
             <svg className={`w-4 h-4 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,15 +221,15 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
                 <button
                   key={p.id}
                   onClick={() => switchProfile(p.id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition ${p.id === activeProfile.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98] ${p.id === activeProfile.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
                 >
                   {p.name}
                 </button>
               ))}
               <div className="border-t border-gray-100 dark:border-white/[0.06] py-1">
-                <button onClick={createProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]">+ 新建配置</button>
-                <button onClick={duplicateProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04]">复制当前配置</button>
-                <button onClick={deleteProfile} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">删除当前配置</button>
+                <button onClick={createProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98]">+ 新建配置</button>
+                <button onClick={duplicateProfile} className="w-full text-left px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all duration-200 active:scale-[0.98]">复制当前配置</button>
+                <button onClick={deleteProfile} className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 active:scale-[0.98]">删除当前配置</button>
               </div>
             </div>
           )}
@@ -261,7 +261,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
           />
           <button
             onClick={() => setShowApiKey(!showApiKey)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all duration-200 active:scale-[0.98]"
             aria-label={showApiKey ? '隐藏 API Key' : '显示 API Key'}
           >
             {showApiKey ? '🙈' : '👁'}
@@ -277,7 +277,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
             <button
               key={mode}
               onClick={() => updateActiveProfile({ apiMode: mode })}
-              className={`flex-1 rounded-xl border px-3 py-2 text-sm transition ${
+              className={`flex-1 rounded-xl border px-3 py-2 text-sm transition-all duration-200 active:scale-[0.98] ${
                 activeProfile.apiMode === mode
                   ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium'
                   : 'border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white/[0.06]'
@@ -308,14 +308,14 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
         <button
           onClick={handleFetchModels}
           disabled={fetchingModels}
-          className="flex-1 rounded-xl bg-gray-900 dark:bg-white/10 px-3 py-2 text-sm font-medium text-white dark:text-white hover:bg-gray-700 dark:hover:bg-white/20 transition disabled:opacity-50"
+          className="flex-1 rounded-xl bg-gray-900 dark:bg-white/10 px-3 py-2 text-sm font-medium text-white dark:text-white hover:bg-gray-700 dark:hover:bg-white/20 transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
         >
           {fetchingModels ? '获取中...' : '获取模型'}
         </button>
         <button
           onClick={checkAllForCurrentProfile}
           disabled={batchChecking}
-          className="rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white/[0.06] transition disabled:opacity-50"
+          className="rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-white/[0.06] transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
         >
           {batchChecking ? '测活中...' : '测活当前配置'}
         </button>

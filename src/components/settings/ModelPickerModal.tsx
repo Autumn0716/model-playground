@@ -110,7 +110,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
           <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">选择模型</h3>
           <button
             onClick={onClose}
-            className="rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+            className="rounded-full p-1 text-gray-400 transition-all duration-200 active:scale-[0.98] hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
             aria-label="关闭"
           >
             <CloseIcon className="h-5 w-5" />
@@ -130,7 +130,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
             </div>
             <button
               onClick={addAllFiltered}
-              className="shrink-0 rounded-xl bg-gray-900 dark:bg-white/10 px-3 py-2 text-sm font-medium text-white dark:text-white transition hover:bg-gray-700 dark:hover:bg-white/20"
+              className="shrink-0 rounded-xl bg-gray-900 dark:bg-white/10 px-3 py-2 text-sm font-medium text-white dark:text-white transition-all duration-200 active:scale-[0.98] hover:bg-gray-700 dark:hover:bg-white/20"
             >
               添加全部
             </button>
@@ -156,7 +156,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
                       <button
                         onClick={() => addGroup(group)}
                         disabled={isAdded}
-                        className={`shrink-0 ml-3 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                        className={`shrink-0 ml-3 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
                           isAdded
                             ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 cursor-default'
                             : 'bg-gray-900 dark:bg-white/10 text-white dark:text-white hover:bg-gray-700 dark:hover:bg-white/20'
