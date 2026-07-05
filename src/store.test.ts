@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { strToU8, zipSync } from 'fflate'
 import { DEFAULT_PARAMS } from './types'
 import { createDefaultFalProfile, createDefaultOpenAIProfile, DEFAULT_RESPONSES_MODEL, DEFAULT_SETTINGS, normalizeSettings } from './lib/apiProfiles'
+import { CURRENT_PERSIST_KEY } from './lib/projectIdentity'
 import type { AgentConversation, ExportData, StoredImage, StoredImageThumbnail, TaskRecord } from './types'
 import { getSelectedImageMentionLabel } from './lib/promptImageMentions'
 vi.mock('./lib/db', () => {
@@ -536,6 +537,16 @@ describe('input persistence setting', () => {
       galleryInputDraft: null,
       dismissedCodexCliPrompts: [],
     })
+  })
+
+  it('uses the current persisted storage key', () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    useStore.getState().setPrompt('updated prompt')
+
+    expect(consoleWarn).toHaveBeenCalledWith(
+      `[zustand persist middleware] Unable to update item '${CURRENT_PERSIST_KEY}', the given storage is currently unavailable.`,
+    )
   })
 
   it('persists input when restart input restore is enabled', () => {

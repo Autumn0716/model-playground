@@ -1,7 +1,6 @@
 import 'core-js/actual/array/at'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
 import 'streamdown/styles.css'
 import 'katex/dist/katex.min.css'
 import './index.css'
@@ -25,8 +24,14 @@ if ('serviceWorker' in navigator) {
   }
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+async function bootstrap() {
+  const { default: App } = await import('./App')
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+
+void bootstrap()

@@ -57,6 +57,7 @@ import { createTransparentOutputMeta, getTransparentRequestParams, removeKeyedBa
 import { blobToDataUrl, fileToDataUrl } from './lib/dataUrl'
 import { formatExportFileTime } from './lib/exportFileName'
 import { buildExportZip, readExportZip, readExportZipFileAsDataUrl } from './lib/exportZip'
+import { CURRENT_PERSIST_KEY } from './lib/projectIdentity'
 
 export const ALL_FAVORITES_COLLECTION_ID = '__all_favorites__'
 export const DEFAULT_FAVORITE_COLLECTION_ID = '__default_favorites__'
@@ -1657,7 +1658,7 @@ export const useStore = create<AppState>()(
       }),
     }),
     {
-      name: 'gpt-image-playground',
+      name: CURRENT_PERSIST_KEY,
       version: 2,
       migrate: (persistedState) => migratePersistedState(persistedState),
       partialize: getPersistedState,
