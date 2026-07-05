@@ -78,6 +78,14 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
     })
   }
 
+  // 重命名 profile
+  const renameProfile = (id: string, name: string) => {
+    commitSettings({
+      ...draft,
+      generalApiProfiles: profiles.map((p) => (p.id === id ? { ...p, name } : p)),
+    })
+  }
+
   // 全局测活:遍历所有分组,按各自 profile 逐个探测
   const checkAllGlobally = async () => {
     const allKeys: Array<{ profile: NonNullable<typeof activeProfile>; modelId: string; key: string }> = []
@@ -128,6 +136,7 @@ export default function GeneralApiSettingsTab({ draft, commitSettings }: General
         onCreate={createProfile}
         onDuplicate={duplicateProfile}
         onDelete={deleteProfile}
+        onRename={renameProfile}
       />
       <div className="flex-1 flex flex-col min-w-0 min-h-0 p-5 sm:p-6 overflow-hidden">
         {/* 顶栏:测活全部 */}

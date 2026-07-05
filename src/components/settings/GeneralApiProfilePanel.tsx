@@ -180,18 +180,6 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-white/[0.08] p-4 space-y-3">
-      {/* 配置名称(可编辑) */}
-      <div>
-        <label className="block mb-1.5 text-sm text-gray-600 dark:text-gray-300">配置名称</label>
-        <input
-          type="text"
-          value={activeProfile.name}
-          onChange={(e) => updateActiveProfile({ name: e.target.value })}
-          placeholder="给这个配置起个名字"
-          className="w-full rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.03] px-3 py-2 text-sm text-gray-700 dark:text-gray-200 outline-none focus:border-blue-400"
-        />
-      </div>
-
       {/* Base URL */}
       <div>
         <label className="block mb-1.5 text-sm text-gray-600 dark:text-gray-300">Base URL</label>

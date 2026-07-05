@@ -1,5 +1,4 @@
-import { useMemo, useState, useRef, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { AppSettings, CandidateGroup, CandidateModel, GeneralApiProfile, ModelGroup } from '../../types'
 import { useStore } from '../../store'
 import { useCloseOnEscape } from '../../hooks/useCloseOnEscape'
@@ -44,9 +43,10 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const settings = useStore((s) => s.settings)
   const showToast = useStore((s) => s.showToast)
-  // 注:不调 usePreventBackgroundScroll —— 本弹窗通过 createPortal 渲染到 document.body,
-  // 在 SettingsModal 的 scrollBoundaryRef 之外。SettingsModal 已锁定 body 滚动,
-  // 这里只需依赖弹窗内部的 overflow-y-auto 自然滚动即可。
+  // 注:不调 usePreventBackgroundScroll,也不用 createPortal。
+  // 弹窗以 position:fixed + z-[80] 渲染在 SettingsModal 的 DOM 子树内,
+  // SettingsModal 的 usePreventBackgroundScroll 的 allowRefs 包含本弹窗,
+  // 因此弹窗内的 wheel 滚动不会被阻止。
   useCloseOnEscape(true, onClose)
 
   const savedGroups = settings.modelGroups
@@ -159,7 +159,7 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
     })
   }
 
-  return createPortal(
+  return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-overlay-in" onClick={onClose} />
       <div
@@ -306,7 +306,6 @@ export default function ModelPickerModal({ profile, candidateGroups, onClose, on
           )}
         </div>
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }
