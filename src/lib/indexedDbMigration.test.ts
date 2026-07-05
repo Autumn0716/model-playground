@@ -139,14 +139,14 @@ describe('migrateLegacyIndexedDb', () => {
     const nativeTransaction = IDBDatabase.prototype.transaction
     vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(function (
       this: IDBDatabase,
-      storeNames: string | string[],
+      storeNames: string | Iterable<string>,
       mode?: IDBTransactionMode,
       options?: IDBTransactionOptions,
     ) {
       const tx = nativeTransaction.call(this, storeNames as never, mode, options)
-      const targetsImagesStore = Array.isArray(storeNames)
-        ? storeNames.includes(STORE_IMAGES)
-        : storeNames === STORE_IMAGES
+      const targetsImagesStore = typeof storeNames === 'string'
+        ? storeNames === STORE_IMAGES
+        : Array.from(storeNames).includes(STORE_IMAGES)
       if (this.name === CURRENT_DB_NAME && mode === 'readwrite' && targetsImagesStore) {
         const store = tx.objectStore(STORE_IMAGES)
         const nativePut = store.put.bind(store)
