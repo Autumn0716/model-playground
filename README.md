@@ -1,10 +1,10 @@
 <div align="center">
 
-# 🎨 GPT Image Playground
+# 🎨 Model Playground
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/CookSleep/gpt_image_playground?style=flat-square&color=eab308)](https://github.com/CookSleep/gpt_image_playground/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/CookSleep/gpt_image_playground?style=flat-square&color=3b82f6)](https://github.com/CookSleep/gpt_image_playground/network/members)
-[![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](https://github.com/CookSleep/gpt_image_playground/blob/main/LICENSE)
+[![GitHub Repo stars](https://img.shields.io/github/stars/Autumn0716/model-playground?style=flat-square&color=eab308)](https://github.com/Autumn0716/model-playground/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Autumn0716/model-playground?style=flat-square&color=3b82f6)](https://github.com/Autumn0716/model-playground/network/members)
+[![License](https://img.shields.io/badge/license-MIT-10b981?style=flat-square)](https://github.com/Autumn0716/model-playground/blob/main/LICENSE)
 [![React](https://img.shields.io/badge/React-19-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
@@ -173,7 +173,7 @@
 <details>
 <summary><strong>▲ 方式一：Vercel 一键部署 (推荐)</strong></summary>
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCookSleep%2Fgpt_image_playground&project-name=gpt-image-playground&repository-name=gpt-image-playground)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FAutumn0716%2Fmodel-playground&project-name=model-playground&repository-name=model-playground)
 
 点击上方按钮导入仓库即可，Vercel 会自动执行构建并部署静态文件。
 
@@ -507,11 +507,11 @@ JSON 结构示例：
 ## ⭐ Star History
 
 <div align="center">
-  <a href="https://www.star-history.com/#CookSleep/gpt_image_playground&Date">
+  <a href="https://www.star-history.com/#Autumn0716/model-playground&Date">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=CookSleep/gpt_image_playground&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=CookSleep/gpt_image_playground&type=Date" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=CookSleep/gpt_image_playground&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Autumn0716/model-playground&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Autumn0716/model-playground&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Autumn0716/model-playground&type=Date" />
     </picture>
   </a>
 </div>

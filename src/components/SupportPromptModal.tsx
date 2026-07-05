@@ -2,7 +2,10 @@ import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { useCloseOnEscape } from '../hooks/useCloseOnEscape'
 import { usePreventBackgroundScroll } from '../hooks/usePreventBackgroundScroll'
+import { CURRENT_REPO } from '../lib/projectIdentity'
 import { CloseIcon } from './icons'
+
+const issuesUrl = `https://github.com/${CURRENT_REPO}/issues`
 
 export default function SupportPromptModal() {
   const supportPromptOpen = useStore((s) => s.supportPromptOpen)
@@ -77,7 +80,7 @@ export default function SupportPromptModal() {
             赞助作者
           </a>
           <a
-            href="https://github.com/CookSleep/gpt_image_playground/issues"
+            href={issuesUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={dismissSupportPrompt}
