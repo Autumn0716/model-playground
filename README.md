@@ -17,13 +17,13 @@
 
 [![Vercel 一键部署](https://img.shields.io/badge/Vercel-%E4%B8%80%E9%94%AE%E9%83%A8%E7%BD%B2-black?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FAutumn0716%2Fmodel-playground&project-name=model-playground&repository-name=model-playground)
 &nbsp;&nbsp;&nbsp;
-[![GitHub Pages 在线体验](https://img.shields.io/badge/GitHub%20Pages-%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-222222?style=for-the-badge&logo=github&logoColor=white)](https://autumn0716.github.io/model-playground/)
+[![GitHub Pages 静态部署](https://img.shields.io/badge/GitHub%20Pages-%E9%9D%99%E6%80%81%E9%83%A8%E7%BD%B2-222222?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Autumn0716/model-playground)
 
 </div>
 
 <br>
 
-> 💡 **提示**：若需调用非 HTTPS 的内网或本地 HTTP API，请使用 GitHub Pages 版本或自行部署；通过 Vercel 等 HTTPS 域名部署的实例因浏览器安全策略通常要求接口必须为 HTTPS。
+> 💡 **提示**：若需调用非 HTTPS 的内网或本地 HTTP API，请使用你自行部署的 HTTP 版本或本地开发环境；通过 Vercel 等 HTTPS 域名部署的实例因浏览器安全策略通常要求接口必须为 HTTPS。
 
 ---
 
@@ -46,7 +46,7 @@
 <td width="180" align="center" valign="middle">
   <a href="https://code0.ai/?source=cooksleep"><img src="https://github.com/user-attachments/assets/515dc874-3b2b-4355-aeae-04eba6e6505d" alt="Code0" width="150"></a>
 </td>
-<td valign="middle"><b><a href="https://code0.ai/?source=cooksleep">Code0</a></b>&nbsp;是一家稳定高速的 AI API 中转服务商，支持 gpt-image、Claude Code、Codex 等主流模型，提供即充即用的 AI 生图与编码能力，面向个人、团队与企业用户。<a href="https://autumn0716.github.io/model-playground/?apiUrl=https%3A%2F%2Fcode0.ai%2Fv1&apiMode=images&profileName=Code0">点此导入配置</a></td>
+<td valign="middle"><b><a href="https://code0.ai/?source=cooksleep">Code0</a></b>&nbsp;是一家稳定高速的 AI API 中转服务商，支持 gpt-image、Claude Code、Codex 等主流模型，提供即充即用的 AI 生图与编码能力，面向个人、团队与企业用户。<a href="https://your-deployment.example.com/?apiUrl=https%3A%2F%2Fcode0.ai%2Fv1&apiMode=images&profileName=Code0">点此导入配置</a></td>
 </tr>
 <tr>
 <td width="180" align="center" valign="middle">
@@ -392,7 +392,7 @@ npm run build
 例如，集成到 New API 的聊天系统：
 
 ```text
-https://autumn0716.github.io/model-playground/?apiUrl={address}&apiKey={key}&model={model}
+https://your-deployment.example.com/?apiUrl={address}&apiKey={key}&model={model}
 ```
 
 ```text
