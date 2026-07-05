@@ -6,9 +6,9 @@ import 'katex/dist/katex.min.css'
 import './index.css'
 import { installMobileViewportGuards } from './lib/viewport'
 import { migrateLegacyLocalStorage } from './lib/storageMigration'
+import { migrateLegacyIndexedDb } from './lib/indexedDbMigration'
 
 installMobileViewportGuards()
-migrateLegacyLocalStorage()
 
 if ('serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
@@ -25,6 +25,9 @@ if ('serviceWorker' in navigator) {
 }
 
 async function bootstrap() {
+  migrateLegacyLocalStorage()
+  await migrateLegacyIndexedDb()
+
   const { default: App } = await import('./App')
 
   createRoot(document.getElementById('root')!).render(

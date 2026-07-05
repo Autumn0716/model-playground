@@ -1,33 +1,28 @@
 import type { AgentConversation, TaskRecord, StoredImage, StoredImageThumbnail } from '../types'
+import { CURRENT_DB_NAME } from './projectIdentity'
 
-const DB_NAME = 'gpt-image-playground'
-const DB_VERSION = 3
-const STORE_TASKS = 'tasks'
-const STORE_IMAGES = 'images'
-const STORE_THUMBNAILS = 'thumbnails'
-const STORE_AGENT_CONVERSATIONS = 'agentConversations'
+export const DB_NAME = CURRENT_DB_NAME
+export const DB_VERSION = 3
+export const STORE_TASKS = 'tasks'
+export const STORE_IMAGES = 'images'
+export const STORE_THUMBNAILS = 'thumbnails'
+export const STORE_AGENT_CONVERSATIONS = 'agentConversations'
+export const DB_STORE_NAMES = [STORE_TASKS, STORE_IMAGES, STORE_THUMBNAILS, STORE_AGENT_CONVERSATIONS] as const
 const THUMBNAIL_MAX_SIZE = 720
 const THUMBNAIL_QUALITY = 0.9
 const THUMBNAIL_VERSION = 2
 
 export const CURRENT_THUMBNAIL_VERSION = THUMBNAIL_VERSION
 
-function openDB(): Promise<IDBDatabase> {
+export function openDbByName(name: string, version = DB_VERSION): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION)
+    const req = indexedDB.open(name, version)
     req.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE_TASKS)) {
-        db.createObjectStore(STORE_TASKS, { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains(STORE_IMAGES)) {
-        db.createObjectStore(STORE_IMAGES, { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains(STORE_THUMBNAILS)) {
-        db.createObjectStore(STORE_THUMBNAILS, { keyPath: 'id' })
-      }
-      if (!db.objectStoreNames.contains(STORE_AGENT_CONVERSATIONS)) {
-        db.createObjectStore(STORE_AGENT_CONVERSATIONS, { keyPath: 'id' })
+      for (const storeName of DB_STORE_NAMES) {
+        if (!db.objectStoreNames.contains(storeName)) {
+          db.createObjectStore(storeName, { keyPath: 'id' })
+        }
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -35,11 +30,11 @@ function openDB(): Promise<IDBDatabase> {
   })
 }
 
-function dbTransaction<T>(
-  storeName: string,
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
+function openDB(): Promise<IDBDatabase> {
+  return openDbByName(DB_NAME)
+}
+
+function dbTransaction<T>(storeName: string, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   return openDB().then(
     (db) =>
       new Promise((resolve, reject) => {

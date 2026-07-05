@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const rootRender = vi.fn()
 const createRootMock = vi.fn(() => ({ render: rootRender }))
 const migrateLegacyLocalStorage = vi.fn()
+const migrateLegacyIndexedDb = vi.fn(async () => {
+  appImportOrder.push('indexeddb')
+})
 const installMobileViewportGuards = vi.fn()
 const appImportOrder: string[] = []
 
@@ -15,6 +18,10 @@ vi.mock('./lib/storageMigration', () => ({
     migrateLegacyLocalStorage()
     appImportOrder.push('migrate')
   }),
+}))
+
+vi.mock('./lib/indexedDbMigration', () => ({
+  migrateLegacyIndexedDb,
 }))
 
 vi.mock('./lib/viewport', () => ({
@@ -36,7 +43,7 @@ describe('main bootstrap', () => {
     appImportOrder.length = 0
   })
 
-  it('runs localStorage migration before importing App', async () => {
+  it('runs storage migrations before importing App', async () => {
     const rootElement = { id: 'root' } as HTMLElement
     const getRegistrations = vi.fn(async () => [])
 
@@ -58,7 +65,8 @@ describe('main bootstrap', () => {
 
     expect(installMobileViewportGuards).toHaveBeenCalledOnce()
     expect(migrateLegacyLocalStorage).toHaveBeenCalledOnce()
-    expect(appImportOrder).toEqual(['migrate', 'app-import'])
+    expect(migrateLegacyIndexedDb).toHaveBeenCalledOnce()
+    expect(appImportOrder).toEqual(['migrate', 'indexeddb', 'app-import'])
     expect(createRootMock).toHaveBeenCalledWith(rootElement)
     expect(rootRender).toHaveBeenCalledOnce()
     expect(getRegistrations).toHaveBeenCalledOnce()
