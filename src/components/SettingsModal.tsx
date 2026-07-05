@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { normalizeBaseUrl } from '../lib/api'
 import { isApiProxyAvailable, isApiProxyLocked, readClientDevProxyConfig } from '../lib/devProxy'
+import { CURRENT_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY } from '../lib/projectIdentity'
 import { useStore, exportData, importData, clearData, type SettingsTab } from '../store'
 import {
   createDefaultOpenAIProfile,
@@ -44,7 +45,7 @@ function newId(prefix: string) {
 }
 
 const ADD_CUSTOM_PROVIDER_VALUE = '__add_custom_provider__'
-const COPY_IMPORT_URL_OPTIONS_STORAGE_KEY = 'gpt-image-playground.copy-import-url-options'
+const COPY_IMPORT_URL_OPTIONS_STORAGE_KEY = CURRENT_COPY_IMPORT_URL_OPTIONS_STORAGE_KEY
 
 const DEFAULT_COPY_IMPORT_URL_OPTIONS = {
   includeApiKey: false,
