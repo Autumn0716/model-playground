@@ -3,7 +3,8 @@ import type { AppSettings, CandidateGroup, GeneralApiProfile, ModelHealthEntry }
 import { useStore } from '../../store'
 import { groupModelsByLcp } from '../../lib/modelGrouping'
 import { buildModelHealthKey, checkModelHealth } from '../../lib/modelHealth'
-import { isApiProxyAvailable, isApiProxyLocked, shouldUseApiProxy, buildApiUrl } from '../../lib/devProxy'
+import { isApiProxyAvailable, isApiProxyLocked } from '../../lib/devProxy'
+import { fetchModelList } from '../../lib/modelList'
 import ModelPickerModal from './ModelPickerModal'
 
 interface GeneralApiProfilePanelProps {
@@ -14,29 +15,6 @@ interface GeneralApiProfilePanelProps {
 // 生成短随机 ID
 function newId(prefix: string) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-}
-
-// 拉取远端 /models 列表,返回模型 ID 数组
-async function fetchModelList(profile: GeneralApiProfile, signal?: AbortSignal): Promise<string[]> {
-  const useApiProxy = shouldUseApiProxy(profile.apiProxy)
-  const url = buildApiUrl(profile.baseUrl, 'models', undefined, useApiProxy)
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${profile.apiKey}` },
-    cache: 'no-store',
-    signal,
-  })
-  if (!response.ok) {
-    const text = await response.text().catch(() => '')
-    throw new Error(`HTTP ${response.status}${text ? `: ${text.slice(0, 200)}` : ''}`)
-  }
-  const data = await response.json()
-  if (!data || !Array.isArray(data.data)) {
-    throw new Error('响应格式异常:缺少 data 数组')
-  }
-  return data.data
-    .map((item: unknown) => (typeof item === 'object' && item !== null ? (item as Record<string, unknown>).id : null))
-    .filter((id: unknown): id is string => typeof id === 'string' && id.trim() !== '')
 }
 
 export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralApiProfilePanelProps) {
@@ -89,7 +67,7 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     const controller = new AbortController()
     abortRef.current = controller
 
-    // 先尝试读缓存:有缓存就直接显示(瞬间),后台静默刷新
+    // 先尝试读缓存:有缓存就直接显示(瞬间),后台刷新
     let usedCache = false
     try {
       const cached = window.sessionStorage.getItem(`models:${modelCacheKey}`)
@@ -115,10 +93,6 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     try {
       const ids = await fetchModelList(activeProfile, controller.signal)
       if (!mountedRef.current || controller.signal.aborted) return
-      if (ids.length === 0) {
-        showToast('未获取到模型', 'info')
-        return
-      }
       // 写缓存
       try { window.sessionStorage.setItem(`models:${modelCacheKey}`, JSON.stringify(ids)) } catch { /* 配额满则忽略 */ }
       const groups = groupModelsByLcp(ids)
@@ -127,11 +101,8 @@ export default function GeneralApiProfilePanel({ settings, onCommit }: GeneralAp
     } catch (err) {
       if (!mountedRef.current || controller.signal.aborted) return
       const msg = err instanceof Error ? err.message : String(err)
-      // 有缓存时网络失败不报错(缓存仍可用)
-      if (!usedCache) {
-        showToast(`获取模型失败:${msg}`, 'error')
-        setShowPicker(false)
-      }
+      showToast(`获取模型失败:${msg}`, 'error')
+      if (!usedCache) setShowPicker(false)
     } finally {
       if (mountedRef.current && !controller.signal.aborted) setFetchingModels(false)
     }
